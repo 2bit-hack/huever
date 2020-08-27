@@ -49,6 +49,7 @@ float min3(float a, float b, float c) {
         return c;
 }
 
+// https://www.tutorialspoint.com/c-program-to-change-rgb-color-model-to-hsv-color-model
 HSVPixel RGBtoHSV(RGBPixel rgbPixel) {
     float h, s, v;
 
@@ -80,6 +81,40 @@ HSVPixel RGBtoHSV(RGBPixel rgbPixel) {
 
     HSVPixel hsvPixel(h, s, v);
     return hsvPixel;
+}
+
+// https://www.codespeedy.com/hsv-to-rgb-in-cpp/
+RGBPixel HSVtoRGB(HSVPixel hsvPixel) {
+    byte r, g, b;
+
+    float H = hsvPixel.h;
+    float s = hsvPixel.s;
+    float v = hsvPixel.v;
+    float C = s * v;
+    float X = C * (1 - abs(fmod(H / 60.0f, 2) - 1));
+    float m = v - C;
+    float r_, g_, b_;
+
+    if (H >= 0 && H < 60) {
+        r_ = C, g_ = X, b_ = 0;
+    } else if (H >= 60 && H < 120) {
+        r_ = X, g_ = C, b_ = 0;
+    } else if (H >= 120 && H < 180) {
+        r_ = 0, g_ = C, b_ = X;
+    } else if (H >= 180 && H < 240) {
+        r_ = 0, g_ = X, b_ = C;
+    } else if (H >= 240 && H < 300) {
+        r_ = X, g_ = 0, b_ = C;
+    } else {
+        r_ = C, g_ = 0, b_ = X;
+    }
+
+    r = (r_ + m) * 255;
+    g = (g_ + m) * 255;
+    b = (b_ + m) * 255;
+
+    RGBPixel rgbPixel(r, g, b);
+    return rgbPixel;
 }
 
 /*
@@ -117,31 +152,57 @@ bool loadImage(std::vector<std::vector<HSVPixel>>& colorData,
 std::vector<RGBPixel>
 getDominantColors(const std::vector<std::vector<HSVPixel>>& colorData,
                   const int k) {
-    const int colorsToShow = std::min(k, 3);
-    std::vector<RGBPixel> dominantColors(colorsToShow);
-
     const int hues = 360;
+    const int scalingFactor = 8;
     std::vector<std::pair<int, int>> hueCount(hues + 1, {0, 0});
-    std::vector<long long> totalSaturation(hues + 1, 0);
-    std::vector<long long> totalValue(hues + 1, 0);
+    std::vector<long long> saturation(hues + 1, 0);
+    std::vector<long long> value(hues + 1, 0);
 
     for (auto colorRow : colorData) {
         for (auto hsvPixel : colorRow) {
-            int hue = (int)floor(hsvPixel.h);
+            int hue =
+                (int)(((int)floor(hsvPixel.h) / scalingFactor) * scalingFactor);
+            if (hue == 0)
+                hue = 1;
             hueCount[hue].first++;
             hueCount[hue].second = hue;
-            totalSaturation[hue] += (int)floor(hsvPixel.s);
-            totalValue[hue] += (int)floor(hsvPixel.v);
+            saturation[hue] += (int)floor(hsvPixel.s);
+            value[hue] += (int)floor(hsvPixel.v);
         }
     }
 
-    std::sort(hueCount.begin(), hueCount.end());
+    /*
+    Count the number of unique hues and average out the saturation and
+    brightness for each hue
+    */
+    int uniqueHues = 0;
+    for (int idx = 0; idx <= hues; idx++) {
+        if (hueCount[idx].first != 0) {
+            uniqueHues++;
+            saturation[idx] /= hueCount[idx].first;
+            value[idx] /= hueCount[idx].first;
+        }
+    }
 
-    // std::cout << hueCount[358].second << " "
-    //           << totalSaturation[hueCount[358].second] / hueCount[358].first
-    //           << " " << totalValue[hueCount[358].second] /
-    //           hueCount[358].first
-    //           << "\n";
+    auto cmp = [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+        return (a.first > b.first);
+    };
+
+    std::sort(hueCount.begin(), hueCount.end(), cmp);
+
+    const int colorsToShow = std::min(uniqueHues, 10);
+    std::vector<RGBPixel> dominantColors(colorsToShow);
+    for (int i = 0; i < colorsToShow; i++) {
+        float h = (float)hueCount[i].second;
+        float s = (float)saturation[hueCount[i].second];
+        float v = (float)value[hueCount[i].second];
+
+        HSVPixel hsvPixel(h, s, v);
+        RGBPixel rgbPixel = HSVtoRGB(hsvPixel);
+
+        std::cout << (int)rgbPixel.r << " " << (int)rgbPixel.g << " "
+                  << (int)rgbPixel.b << "\n";
+    }
 
     return dominantColors;
 }
@@ -160,7 +221,7 @@ int main(int argv, char** argc) {
         return 1;
     }
 
-    getDominantColors(colorData, 1);
+    getDominantColors(colorData, 10);
 
     return 0;
 }
