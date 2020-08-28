@@ -79,7 +79,7 @@ HSVPixel RGBtoHSV(RGBPixel rgbPixel) {
 
     v = cmax * 100;
 
-    HSVPixel hsvPixel(h, s, v);
+    HSVPixel hsvPixel(round(h), round(s), round(v));
     return hsvPixel;
 }
 
@@ -131,6 +131,9 @@ bool loadImage(std::vector<std::vector<HSVPixel>>& colorData,
     if (data != nullptr) {
         colorData.resize(height, std::vector<HSVPixel>(width));
 
+        /*
+        Transform each RGB pixel to HSV
+        */
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
                 int index = 4 * (i * width + j);
@@ -149,11 +152,13 @@ bool loadImage(std::vector<std::vector<HSVPixel>>& colorData,
     return loaded;
 }
 
+/*
+Gets an array of the dominant colors in RGB format
+*/
 std::vector<RGBPixel>
-getDominantColors(const std::vector<std::vector<HSVPixel>>& colorData,
-                  const int k) {
+getDominantColors(const std::vector<std::vector<HSVPixel>>& colorData) {
     const int hues = 360;
-    const int scalingFactor = 8;
+    const int scalingFactor = 1;
     std::vector<std::pair<int, int>> hueCount(hues + 1, {0, 0});
     std::vector<long long> saturation(hues + 1, 0);
     std::vector<long long> value(hues + 1, 0);
@@ -161,13 +166,13 @@ getDominantColors(const std::vector<std::vector<HSVPixel>>& colorData,
     for (auto colorRow : colorData) {
         for (auto hsvPixel : colorRow) {
             int hue =
-                (int)(((int)floor(hsvPixel.h) / scalingFactor) * scalingFactor);
+                (int)(((int)round(hsvPixel.h) / scalingFactor) * scalingFactor);
             if (hue == 0)
                 hue = 1;
             hueCount[hue].first++;
             hueCount[hue].second = hue;
-            saturation[hue] += (int)floor(hsvPixel.s);
-            value[hue] += (int)floor(hsvPixel.v);
+            saturation[hue] += (int)round(hsvPixel.s);
+            value[hue] += (int)round(hsvPixel.v);
         }
     }
 
@@ -191,7 +196,7 @@ getDominantColors(const std::vector<std::vector<HSVPixel>>& colorData,
     std::sort(hueCount.begin(), hueCount.end(), cmp);
 
     const int colorsToShow = std::min(uniqueHues, 10);
-    std::vector<RGBPixel> dominantColors(colorsToShow);
+    std::vector<RGBPixel> dominantColors;
     for (int i = 0; i < colorsToShow; i++) {
         float h = (float)hueCount[i].second;
         float s = (float)saturation[hueCount[i].second];
@@ -199,13 +204,28 @@ getDominantColors(const std::vector<std::vector<HSVPixel>>& colorData,
 
         HSVPixel hsvPixel(h, s, v);
         RGBPixel rgbPixel = HSVtoRGB(hsvPixel);
-
-        std::cout << (int)rgbPixel.r << " " << (int)rgbPixel.g << " "
-                  << (int)rgbPixel.b << "\n";
+        dominantColors.push_back(rgbPixel);
     }
 
     return dominantColors;
 }
+
+/*
+Display dominant colors in Truecolor (for supported terminals only)
+*/
+void displayTruecolor(const std::vector<RGBPixel>& colors) {
+    for (auto color : colors) {
+        std::string colorString = "\x1b[38;2;" + std::to_string((int)color.r) +
+                                  ";" + std::to_string((int)color.g) + ";" +
+                                  std::to_string((int)color.b) + "m" +
+                                  std::to_string((int)color.r) + "|" +
+                                  std::to_string((int)color.g) + "|" +
+                                  std::to_string((int)color.b) + "\x1b[0m";
+        std::cout << colorString << "\n";
+    }
+}
+
+// TODO: Add ANSI color support for terminals that don't have Truecolor
 
 int main(int argv, char** argc) {
     if (argv < 2) {
@@ -221,7 +241,8 @@ int main(int argv, char** argc) {
         return 1;
     }
 
-    getDominantColors(colorData, 10);
+    std::vector<RGBPixel> colors = getDominantColors(colorData);
+    displayTruecolor(colors);
 
     return 0;
 }
