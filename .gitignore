@@ -1,8 +1,4 @@
 # Build files
 build/
 *.out
-
-# Test images
-*.jpg
-*.jpeg
-*.png
+huever

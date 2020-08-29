@@ -189,6 +189,7 @@ std::vector<RGBPixel> makeColorsUnique(const std::vector<RGBPixel>& colors) {
 Display dominant colors in Truecolor (for supported terminals only)
 */
 void displayTruecolor(const std::vector<RGBPixel>& colors) {
+    std::cout << "\n";
     for (auto color : colors) {
         std::string colorString = "\x1b[38;2;" + std::to_string(color.r) + ";" +
                                   std::to_string(color.g) + ";" +
