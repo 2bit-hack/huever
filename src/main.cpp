@@ -133,7 +133,7 @@ medianCutGeneratePalette(const std::vector<RGBPixel>& source,
 }
 
 /*
-Loads image as a 2D vector of HSV pixels and returns true, if successful
+Loads image as a 2D vector of RGB pixels and returns true, if successful
 If image does not exist, or is unable to be read, the vector remains empty
 and false is returned
 */
