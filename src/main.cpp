@@ -77,6 +77,7 @@ medianCutGeneratePalette(const std::vector<RGBPixel>& source,
             if (std::get<0>(boxData) == 0) {
                 sortBoxes(std::get<1>(boxData), redRange, greenRange,
                           blueRange);
+
                 if (redRange >= greenRange && redRange >= blueRange) {
                     std::get<0>(boxData) = redRange;
                 } else if (greenRange >= redRange && greenRange >= blueRange) {
@@ -167,11 +168,14 @@ bool loadImage(std::vector<RGBPixel>& colorData, const std::string& filename) {
     return loaded;
 }
 
+/*
+Uses a simple string hash to make all of the obtained colors unique
+*/
 std::vector<RGBPixel> makeColorsUnique(const std::vector<RGBPixel>& colors) {
     std::vector<RGBPixel> uniqueColors;
 
     std::unordered_set<std::string> uniqueColorSet;
-    for (auto color : colors) {
+    for (const auto& color : colors) {
         std::string hash = std::to_string(color.r) + "|" +
                            std::to_string(color.g) + "|" +
                            std::to_string(color.b);
@@ -190,23 +194,71 @@ Display dominant colors in Truecolor (for supported terminals only)
 */
 void displayTruecolor(const std::vector<RGBPixel>& colors) {
     std::cout << "\n";
-    for (auto color : colors) {
+    for (const auto& color : colors) {
         std::string colorString = "\x1b[38;2;" + std::to_string(color.r) + ";" +
                                   std::to_string(color.g) + ";" +
                                   std::to_string(color.b) +
                                   "m██████████\x1b[0m";
         std::cout << colorString << "\t";
-        std::cout << (int)color.r << " " << (int)color.g << " " << (int)color.b
-                  << "\n";
+        std::cout << static_cast<std::uint_fast32_t>(color.r) << " "
+                  << static_cast<std::uint_fast32_t>(color.g) << " "
+                  << static_cast<std::uint_fast32_t>(color.b) << "\n";
     }
 }
 
-// TODO: Add ANSI color support for terminals that don't have Truecolor
+// https://stackoverflow.com/a/26665998
+// A rough approximation of RGB colors in ANSI
+
+/*
+Returns an ANSI color code that roughly corresponds to the given RGB color
+*/
+std::uint_fast32_t RGBtoANSI(const RGBPixel& color) {
+    if (color.r == color.g && color.r == color.b) {
+        if (color.r < 8) {
+            return 16;
+        }
+
+        if (color.r > 248) {
+            return 231;
+        }
+
+        return round(((color.r - 8) / 247) * 24) + 232;
+    }
+
+    std::uint_fast32_t ansiCode =
+        16 + (36 * round(static_cast<float>(color.r) / 255 * 5)) +
+        (6 * round(static_cast<float>(color.g) / 255 * 5)) +
+        round(static_cast<float>(color.b) / 255 * 5);
+
+    return ansiCode;
+}
+
+/*
+Display dominant colors in ANSI
+*/
+void displayANSI(const std::vector<RGBPixel>& colors) {
+    std::cout << "\n";
+    for (const auto& color : colors) {
+        std::uint_fast32_t ansiCode = RGBtoANSI(color);
+        std::string colorString =
+            "\033[38;5;" + std::to_string(ansiCode) + "m██████████\033[0;00m";
+        std::cout << colorString << "\t";
+        std::cout << static_cast<std::uint_fast32_t>(color.r) << " "
+                  << static_cast<std::uint_fast32_t>(color.g) << " "
+                  << static_cast<std::uint_fast32_t>(color.b) << "\n";
+    }
+    std::cout << "\nANSI\n";
+}
 
 int main(int argv, char** argc) {
     if (argv < 2) {
         std::cerr << "INVALID NUMBER OF ARGUMENTS!\n";
         return 1;
+    }
+
+    bool isTruecolor = true;
+    if (argv == 3 && std::string(argc[2]) == std::string("ANSI")) {
+        isTruecolor = false;
     }
 
     std::string filename(argc[1]);
@@ -219,7 +271,11 @@ int main(int argv, char** argc) {
 
     std::vector<RGBPixel> colors =
         makeColorsUnique(medianCutGeneratePalette(colorData, 8));
-    displayTruecolor(colors);
+
+    if (isTruecolor)
+        displayTruecolor(colors);
+    else
+        displayANSI(colors);
 
     return 0;
 }

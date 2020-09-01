@@ -13,6 +13,16 @@ Run `make` to generate the executable
 ./huever path/to/image
 ```
 
+This assumes the terminal you are using supports Truecolor
+
+Alternatively, you could run
+
+```
+./huever path/to/image ANSI
+```
+On terminals that do not support Truecolor
+(The color results may be inaccurate because of the limited palette)
+
 Run `make clean` to clean up the executable
 
 ## Libraries used
