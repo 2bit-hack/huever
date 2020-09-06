@@ -1,7 +1,7 @@
 CC=g++
 
 huever:
-	$(CC) -o huever src/main.cpp
+	$(CC) -O3 -o huever src/main.cpp
 
 .PHONY: clean
 
