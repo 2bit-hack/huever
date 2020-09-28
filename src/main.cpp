@@ -169,6 +169,18 @@ bool loadImage(std::vector<RGBPixel>& colorData, const std::string& filename) {
 }
 
 /*
+Pads number with spaces to make it 3 characters wide
+*/
+std::string padEnd(const std::uint_fast32_t x) {
+    if (x >= 100)
+        return std::to_string(x);
+    else if (x >= 10)
+        return (std::to_string(x) + " ");
+    else
+        return (std::to_string(x) + "  ");
+}
+
+/*
 Uses a simple string hash to make all of the obtained colors unique
 */
 std::vector<RGBPixel> makeColorsUnique(const std::vector<RGBPixel>& colors) {
@@ -200,8 +212,13 @@ void displayTruecolor(const std::vector<RGBPixel>& colors) {
                                   std::to_string(color.b) +
                                   "m██████████\x1b[0m";
         std::cout << colorString << "\t";
-        std::cout << static_cast<std::uint_fast32_t>(color.r) << " "
-                  << static_cast<std::uint_fast32_t>(color.g) << " "
+
+        std::cout << padEnd(static_cast<std::uint_fast32_t>(color.r)) << " "
+                  << padEnd(static_cast<std::uint_fast32_t>(color.g)) << " "
+                  << padEnd(static_cast<std::uint_fast32_t>(color.b)) << "\t";
+
+        std::cout << "#" << std::hex << static_cast<std::uint_fast32_t>(color.r)
+                  << static_cast<std::uint_fast32_t>(color.g)
                   << static_cast<std::uint_fast32_t>(color.b) << "\n";
     }
 }
@@ -243,8 +260,13 @@ void displayANSI(const std::vector<RGBPixel>& colors) {
         std::string colorString =
             "\033[38;5;" + std::to_string(ansiCode) + "m██████████\033[0;00m";
         std::cout << colorString << "\t";
-        std::cout << static_cast<std::uint_fast32_t>(color.r) << " "
-                  << static_cast<std::uint_fast32_t>(color.g) << " "
+
+        std::cout << padEnd(static_cast<std::uint_fast32_t>(color.r)) << " "
+                  << padEnd(static_cast<std::uint_fast32_t>(color.g)) << " "
+                  << padEnd(static_cast<std::uint_fast32_t>(color.b)) << "\t";
+
+        std::cout << "#" << std::hex << static_cast<std::uint_fast32_t>(color.r)
+                  << static_cast<std::uint_fast32_t>(color.g)
                   << static_cast<std::uint_fast32_t>(color.b) << "\n";
     }
     std::cout << "\nANSI\n";
